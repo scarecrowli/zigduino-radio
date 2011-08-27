@@ -42,9 +42,10 @@ extern "C" {
 } /* extern "C" */
 #endif
 
-#define ZR_FIFO_SIZE 128
-#define ZR_TXTMPBUFF_SIZE 128
+#define ZR_FIFO_SIZE 128 // size for the RX FIFO ring buffer
+#define ZR_TXTMPBUFF_SIZE 128 // size for the TX non-immediate transmit buffer
 
+// just a class definition, for usage and comments, see the cpp file
 class cZigduinoRadio
 {
 	private:
@@ -70,6 +71,8 @@ class cZigduinoRadio
 	public:
 		cZigduinoRadio();
 		void begin(channel_t);
+		void begin(channel_t, uint8_t*);
+		void setFrameHeader(uint8_t*);
 		void attachError(void(*)(radio_error_t));
 		void attachIrq(void(*)(uint8_t));
 		void attachReceiveFrame(uint8_t* (*)(uint8_t, uint8_t*, uint8_t, int8_t, uint8_t));
@@ -91,11 +94,12 @@ class cZigduinoRadio
 		void setState(radio_state_t);
 		void setChannel(channel_t);
 		void forceState(radio_state_t);
+		void waitTxDone(uint16_t);
 		uint8_t getRssi();
 		uint8_t getLqi();
 };
 
-extern cZigduinoRadio ZigduinoRadio;
+extern cZigduinoRadio ZigduinoRadio; // make single instance accessible
 
 #define ZigduinoRadio_h
 #endif
