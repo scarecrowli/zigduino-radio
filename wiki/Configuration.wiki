@@ -2,7 +2,9 @@
 
 == Enabling / Disabling LEDs ==
 
-Go into `ZigduinoRadioCfg.h` and comment or uncomment `#define ENABLE_DIG3_DIG4` and/or `#define ENABLE_ZIGDUINO_LEDS`. The former will let the ATmega128RFA1 hardware automatically use DIG3 and DIG4 to indicate the status of the transceiver (this might be undesirable if you need those pins for other stuff), the latter will use PD5 and PD6 to light up the Zigduino's RFRX and RFTX LEDs (these only exist on the Zigduino board).
+Go into `ZigduinoRadioCfg.h` and comment or uncomment `#define ENABLE_DIG3_DIG4` and/or `#define ENABLE_ZIGDUINO_LEDS`.
+
+The former will let the ATmega128RFA1 hardware automatically use DIG3 and DIG4 to indicate the status of the transceiver (this might be undesirable if you need those pins for other stuff), the latter will use PD5 and PD6 to light up the Zigduino's RFRX and RFTX LEDs (these only exist on the Zigduino board).
 
 == Buffer Sizes ==
 
