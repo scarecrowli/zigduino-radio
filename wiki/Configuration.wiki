@@ -1,0 +1,13 @@
+#summary how to configure the library
+
+== Enabling / Disabling LEDs ==
+
+Go into `ZigduinoRadioCfg.h` and comment or uncomment `#define ENABLE_DIG3_DIG4` and/or `#define ENABLE_ZIGDUINO_LEDS`. The former will let the ATmega128RFA1 hardware automatically use DIG3 and DIG4 to indicate the status of the transceiver (this might be undesirable if you need those pins for other stuff), the latter will use PD5 and PD6 to light up the Zigduino's RFRX and RFTX LEDs (these only exist on the Zigduino board).
+
+== Buffer Sizes ==
+
+Go into `ZigduinoRadio.h` to edit the sizes of various buffers.
+
+The rxFrameBuffer and txTmpBuffer should not be longer than MAX_FRAME_SIZE, but may be smaller.
+
+Changing these sizes are meant to conserve memory. The default settings are pretty large, probably around 384 bytes of RAM, but the ATmega128RFA1 has 16K of RAM. You shouldn't have to worry too much about it.
