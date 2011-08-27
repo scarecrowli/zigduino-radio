@@ -85,7 +85,7 @@ inline void trx_bit_write(trx_regaddr_t addr, trx_regval_t mask, uint8_t pos, tr
     *(uint8_t*)(TRX_REGISTER_BASEADDR + addr) = tmp;
 }
 
-void trx_frame_write(uint8_t length, uint8_t *data)
+inline void trx_frame_write(uint8_t length, uint8_t *data)
 {
    if (length > 127)
    {
@@ -96,7 +96,7 @@ void trx_frame_write(uint8_t length, uint8_t *data)
    memcpy( (void*)&TRXFBST+1, data, length);
 }
 
-uint8_t trx_frame_read(uint8_t *data, uint8_t datasz, uint8_t *lqi)
+inline uint8_t trx_frame_read(uint8_t *data, uint8_t datasz, uint8_t *lqi)
 {
     uint8_t length;
 
@@ -112,7 +112,7 @@ uint8_t trx_frame_read(uint8_t *data, uint8_t datasz, uint8_t *lqi)
     return length;
 }
 
-uint8_t trx_frame_read_crc(uint8_t *data, uint8_t datasz, bool *crc_ok)
+inline uint8_t trx_frame_read_crc(uint8_t *data, uint8_t datasz, bool *crc_ok)
 {
     if (crc_ok != NULL)
     {
@@ -121,7 +121,7 @@ uint8_t trx_frame_read_crc(uint8_t *data, uint8_t datasz, bool *crc_ok)
     return trx_frame_read(data, datasz, NULL);
 }
 
-uint8_t trx_frame_read_data_crc(uint8_t *data, uint8_t datasz, uint8_t *lqi, bool *crc_ok)
+inline uint8_t trx_frame_read_data_crc(uint8_t *data, uint8_t datasz, uint8_t *lqi, bool *crc_ok)
 {
     if (crc_ok != NULL)
     {
@@ -130,7 +130,7 @@ uint8_t trx_frame_read_data_crc(uint8_t *data, uint8_t datasz, uint8_t *lqi, boo
     return trx_frame_read(data, datasz, lqi);
 }
 
-uint8_t trx_frame_get_length(void)
+inline uint8_t trx_frame_get_length(void)
 {
     return TST_RX_LENGTH;
 }
