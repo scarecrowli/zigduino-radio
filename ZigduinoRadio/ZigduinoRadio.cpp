@@ -83,16 +83,7 @@ cZigduinoRadio::cZigduinoRadio()
  */
 void cZigduinoRadio::begin(channel_t chan)
 {
-	radio_init(rxFrameBuffer, MAX_FRAME_SIZE);
-	
-	// fixed frame header
-	txTmpBuffer[0] = 0x01; txTmpBuffer[1] = 0x80; txTmpBuffer[2] =  0; txTmpBuffer[3] = 0x11; txTmpBuffer[4] = 0x22; txTmpBuffer[5] = 0x33; txTmpBuffer[6] = 0x44;
-	
-	// set the channel
-	radio_set_param(RP_CHANNEL(chan));
-	
-	// default to receiver
-	radio_set_state(STATE_RX);
+	begin(chan, 0);
 }
 
 /**
@@ -107,16 +98,33 @@ void cZigduinoRadio::begin(channel_t chan, uint8_t* frameHeader)
 {
 	radio_init(rxFrameBuffer, MAX_FRAME_SIZE);
 	
-	// copy custom frame header
-	int i;
-	for (i = 0; i < 7; i++)
-		txTmpBuffer[i] = frameHeader[i];
+	if (frameHeader)
+	{
+		// copy custom frame header
+		int i;
+		for (i = 0; i < 7; i++)
+			txTmpBuffer[i] = frameHeader[i];
+	}
+	else
+	{
+		// fixed frame header
+		txTmpBuffer[0] = 0x01; txTmpBuffer[1] = 0x80; txTmpBuffer[2] =  0; txTmpBuffer[3] = 0x11; txTmpBuffer[4] = 0x22; txTmpBuffer[5] = 0x33; txTmpBuffer[6] = 0x44;
+	}
 	
 	// set the channel
 	radio_set_param(RP_CHANNEL(chan));
 	
 	// default to receiver
 	radio_set_state(STATE_RX);
+	
+	#ifdef ENABLE_DIG3_DIG4
+	trx_bit_write(SR_PA_EXT_EN, 1);
+	#endif
+	
+	#ifdef ENABLE_ZIGDUINO_LEDS
+	DDRD |= _BV(5) | _BV(6);
+	PORTD &= ~(_BV(5) | _BV(6));
+	#endif
 }
 
 /**
@@ -344,6 +352,9 @@ void cZigduinoRadio::txFrame(uint8_t* frm, uint8_t len)
 	waitTxDone(0xFFFF);
 	txIsBusy = 1;
 	radio_set_state(STATE_TX);
+	#ifdef ENABLE_ZIGDUINO_LEDS
+	PORTD |= _BV(5);
+	#endif
 	radio_send_frame(len, frm, 0);
 	waitTxDone(0xFFFF);
 	radio_set_state(STATE_RX);
@@ -381,6 +392,9 @@ void cZigduinoRadio::endTransmission()
 	waitTxDone(0xFFFF);
 	txIsBusy = 1;
 	radio_set_state(STATE_TX);
+	#ifdef ENABLE_ZIGDUINO_LEDS
+	PORTD |= _BV(5);
+	#endif
 	radio_send_frame(txTmpBufferLength, txTmpBuffer, 0);
 	waitTxDone(0xFFFF);
 	radio_set_state(STATE_RX);
@@ -425,6 +439,9 @@ void cZigduinoRadio::write(uint8_t c)
 		waitTxDone(0xFFFF);
 		txIsBusy = 1;
 		radio_set_state(STATE_TX);
+		#ifdef ENABLE_ZIGDUINO_LEDS
+		PORTD |= _BV(5);
+		#endif
 		radio_send_frame(10, txTmpBuffer, 0);
 		waitTxDone(0xFFFF);
 		radio_set_state(STATE_RX);

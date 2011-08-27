@@ -30,5 +30,8 @@
 
 #define zigduino
 
+#define ENABLE_DIG3_DIG4 // this enables the DIG3 and DIG4 indicators by enabling PA_EXT_EN
+#define ENABLE_ZIGDUINO_LEDS // this enables the RFTX and RFRX LEDs on the Zigduino
+
 #define ZigduinoRadioCfg_h
 #endif
