@@ -30,7 +30,7 @@
 #include "ZigduinoRadioEvents.h"
 
 // this is used as the main buffer for all received data frames
-uint8_t cZigduinoRadio::rxFrameBuffer[MAX_FRAME_SIZE];
+uint8_t cZigduinoRadio::rxFrameBuffer[ZR_RXFRMBUFF_SIZE];
 
 // this is a ring FIFO buffer, used for the read/peek/available/flush functions
 uint8_t cZigduinoRadio::rxRingBuffer[ZR_FIFO_SIZE];
