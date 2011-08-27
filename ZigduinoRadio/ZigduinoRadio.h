@@ -42,8 +42,9 @@ extern "C" {
 } /* extern "C" */
 #endif
 
+#define ZR_RXFRMBUFF_SIZE MAX_FRAME_SIZE
 #define ZR_FIFO_SIZE 128 // size for the RX FIFO ring buffer
-#define ZR_TXTMPBUFF_SIZE 128 // size for the TX non-immediate transmit buffer
+#define ZR_TXTMPBUFF_SIZE MAX_FRAME_SIZE // size for the TX non-immediate transmit buffer
 
 // just a class definition, for usage and comments, see the cpp file
 class cZigduinoRadio
