@@ -99,18 +99,29 @@ int8_t ed;
 ISR(TRX24_RX_END_vect)
 {
     radio_receive_frame();
+	
+	#ifdef ENABLE_ZIGDUINO_LEDS
+	PORTD &= ~_BV(6);
+	#endif
 } 
 
 ISR(TRX24_RX_START_vect)
 {
-    static volatile int x;
-    x++;
+	#ifdef ENABLE_ZIGDUINO_LEDS
+	PORTD |= _BV(6);
+	#else
+	asm volatile ("nop");
+	#endif
 }
 
 
 
 ISR(TRX24_TX_END_vect)
 {
+	#ifdef ENABLE_ZIGDUINO_LEDS
+	PORTD &= ~_BV(5);
+	#endif
+	
     if (radiostatus.state == STATE_TX)
     {
         usr_radio_tx_done(TX_OK);
