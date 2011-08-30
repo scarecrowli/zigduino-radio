@@ -1,0 +1,5 @@
+#summary how to use the functions
+
+All function usage documentation is provided in the `ZigduinoRadio.cpp` file, in the form of Doxygen format comments.
+
+To learn how to use the other uracoli functions and related code, please visit the [http://www.nongnu.org/uracoli/ uracoli website].
