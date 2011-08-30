@@ -98,29 +98,22 @@ int8_t ed;
  */
 ISR(TRX24_RX_END_vect)
 {
-    radio_receive_frame();
+	ZR_RFRX_LED_OFF();
 	
-	#ifdef ENABLE_ZIGDUINO_LEDS
-	PORTD &= ~_BV(6);
-	#endif
+    radio_receive_frame();
 } 
 
 ISR(TRX24_RX_START_vect)
 {
-	#ifdef ENABLE_ZIGDUINO_LEDS
-	PORTD |= _BV(6);
-	#else
+	ZR_RFRX_LED_ON();
 	asm volatile ("nop");
-	#endif
 }
 
 
 
 ISR(TRX24_TX_END_vect)
 {
-	#ifdef ENABLE_ZIGDUINO_LEDS
-	PORTD &= ~_BV(5);
-	#endif
+	ZR_RFTX_LED_OFF();
 	
     if (radiostatus.state == STATE_TX)
     {

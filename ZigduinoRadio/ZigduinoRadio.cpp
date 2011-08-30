@@ -121,10 +121,10 @@ void cZigduinoRadio::begin(channel_t chan, uint8_t* frameHeader)
 	trx_bit_write(SR_PA_EXT_EN, 1);
 	#endif
 	
-	#ifdef ENABLE_ZIGDUINO_LEDS
-	DDRD |= _BV(5) | _BV(6);
-	PORTD &= ~(_BV(5) | _BV(6));
-	#endif
+	ZR_RFRX_LED_OUTPUT();
+	ZR_RFTX_LED_OUTPUT();
+	ZR_RFRX_LED_OFF();
+	ZR_RFTX_LED_OFF();
 }
 
 /**
@@ -349,16 +349,18 @@ int8_t cZigduinoRadio::available()
  */
 void cZigduinoRadio::txFrame(uint8_t* frm, uint8_t len)
 {
+	#ifdef ZR_TXWAIT_BEFORE
 	waitTxDone(0xFFFF);
+	#endif
 	txIsBusy = 1;
 	radio_set_state(STATE_TX);
-	#ifdef ENABLE_ZIGDUINO_LEDS
-	PORTD |= _BV(5);
-	#endif
+	ZR_RFTX_LED_ON();
 	radio_send_frame(len, frm, 0);
+	#ifdef ZR_TXWAIT_AFTER
 	waitTxDone(0xFFFF);
 	radio_set_state(STATE_RX);
 	txIsBusy = 0;
+	#endif
 }
 
 /**
@@ -389,16 +391,34 @@ void cZigduinoRadio::endTransmission()
 	// empty FCS field
 	txTmpBufferLength += 2;
 	
+	#ifdef ZR_TXWAIT_BEFORE
 	waitTxDone(0xFFFF);
+	#endif
 	txIsBusy = 1;
 	radio_set_state(STATE_TX);
-	#ifdef ENABLE_ZIGDUINO_LEDS
-	PORTD |= _BV(5);
-	#endif
+	ZR_RFTX_LED_ON();
 	radio_send_frame(txTmpBufferLength, txTmpBuffer, 0);
+	#ifdef ZR_TXWAIT_AFTER
 	waitTxDone(0xFFFF);
 	radio_set_state(STATE_RX);
 	txIsBusy = 0;
+	#endif
+}
+
+/**
+ * @brief Cancel Trasmission
+ *
+ * Clears payload buffer
+ *
+ * Warning: does not actually cancel a transmission in progress
+ *
+ */
+void cZigduinoRadio::cancelTransmission()
+{
+	usedBeginTransmission = 0;
+	
+	// add frame header
+	txTmpBufferLength = 7;
 }
 
 /**
@@ -428,6 +448,14 @@ void cZigduinoRadio::write(uint8_t c)
 		{
 			txTmpBuffer[txTmpBufferLength] = c;
 			txTmpBufferLength++;
+			
+			if (txTmpBufferLength >= ZR_TXTMPBUFF_SIZE - 2)
+			{
+				// buffer is now full
+				// just send it all out so we have more room
+				endTransmission();
+				beginTransmission();
+			}
 		}
 	}
 	else
@@ -436,16 +464,18 @@ void cZigduinoRadio::write(uint8_t c)
 		txTmpBuffer[8] = 0; // empty FCS
 		txTmpBuffer[9] = 0; // empty FCS
 		
+		#ifdef ZR_TXWAIT_BEFORE
 		waitTxDone(0xFFFF);
+		#endif
 		txIsBusy = 1;
 		radio_set_state(STATE_TX);
-		#ifdef ENABLE_ZIGDUINO_LEDS
-		PORTD |= _BV(5);
-		#endif
+		ZR_RFTX_LED_ON();
 		radio_send_frame(10, txTmpBuffer, 0);
+		#ifdef ZR_TXWAIT_AFTER
 		waitTxDone(0xFFFF);
 		radio_set_state(STATE_RX);
 		txIsBusy = 0;
+		#endif
 	}
 }
 
@@ -550,6 +580,21 @@ void cZigduinoRadio::setState(radio_state_t state, uint8_t force)
 void cZigduinoRadio::setState(radio_state_t state)
 {
 	radio_set_state(state);
+}
+
+/**
+ * @brief radio_set_state to STATE_RX
+ *
+ * bring the the radio in the requested state of STATE_RX
+ *
+ * the radio state does not return to STATE_RX automatically if ZR_TXWAIT_AFTER is not used
+ * thus why this is provided
+ *
+ * see radio.h for more info
+ */
+void cZigduinoRadio::setStateRx()
+{
+	radio_set_state(STATE_RX);
 }
 
 /**

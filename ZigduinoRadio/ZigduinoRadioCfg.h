@@ -31,7 +31,16 @@
 #define zigduino
 
 //#define ENABLE_DIG3_DIG4 // this enables the DIG3 and DIG4 indicators by enabling PA_EXT_EN
-#define ENABLE_ZIGDUINO_LEDS // this enables the RFTX and RFRX LEDs on the Zigduino
+
+// define the LED behaviour macros here
+// leave them blank if you want to disable the LEDs
+// PD5 and PD6 are used on the Zigduino
+#define ZR_RFRX_LED_OUTPUT() do{DDRD|=_BV(6);}while(0)
+#define ZR_RFTX_LED_OUTPUT() do{DDRD|=_BV(5);}while(0)
+#define ZR_RFRX_LED_ON() do{PORTD|=_BV(6);}while(0)
+#define ZR_RFTX_LED_ON() do{PORTD|=_BV(5);}while(0)
+#define ZR_RFRX_LED_OFF() do{PORTD&=~_BV(6);}while(0)
+#define ZR_RFTX_LED_OFF() do{PORTD&=~_BV(5);}while(0)
 
 #define ZigduinoRadioCfg_h
 #endif
