@@ -46,6 +46,9 @@ extern "C" {
 #define ZR_FIFO_SIZE 128 // size for the RX FIFO ring buffer
 #define ZR_TXTMPBUFF_SIZE MAX_FRAME_SIZE // size for the TX non-immediate transmit buffer
 
+#define ZR_TXWAIT_BEFORE // when you call any TX functions, it will wait until the previous transmission has finished before initiating a new transmission
+#define ZR_TXWAIT_AFTER // when you call any TX functions, it will transmit and then wait until that transmission finished
+
 // just a class definition, for usage and comments, see the cpp file
 class cZigduinoRadio
 {
@@ -89,10 +92,12 @@ class cZigduinoRadio
 		void txFrame(uint8_t*, uint8_t);
 		void beginTransmission();
 		void endTransmission();
+		void cancelTransmission();
 		void setParam(radio_attribute_t, radio_param_t);
 		radio_cca_t doCca();
 		void setState(radio_state_t, uint8_t);
 		void setState(radio_state_t);
+		void setStateRx();
 		void setChannel(channel_t);
 		void forceState(radio_state_t);
 		void waitTxDone(uint16_t);
