@@ -34,12 +34,12 @@ extern "C" {
 
 extern void (*user_radio_error)(radio_error_t);
 extern void (*user_radio_irq)(uint8_t);
-extern uint8_t* (*user_radio_receive_frame)(uint8_t, uint8_t*, uint8_t, int8_t, uint8_t);
+extern uint8_t* (*user_radio_receive_frame)(uint8_t, uint8_t*, uint8_t, uint8_t);
 extern void (*user_radio_tx_done)(radio_tx_done_t);
 
 void zr_attach_error(void (*)(radio_error_t));
 void zr_attach_irq(void (*)(uint8_t));
-void zr_attach_receive_frame(uint8_t* (*)(uint8_t, uint8_t*, uint8_t, int8_t, uint8_t));
+void zr_attach_receive_frame(uint8_t* (*)(uint8_t, uint8_t*, uint8_t, uint8_t));
 void zr_attach_tx_done(void (*)(radio_tx_done_t));
 
 #ifdef __cplusplus

@@ -66,10 +66,10 @@ class cZigduinoRadio
 		static uint8_t usedBeginTransmission;
 		volatile static uint8_t txIsBusy;
 		
-		static uint8_t* (*zrEventReceiveFrame)(uint8_t, uint8_t*, uint8_t, int8_t, uint8_t);
+		static uint8_t* (*zrEventReceiveFrame)(uint8_t, uint8_t*, uint8_t, uint8_t);
 		static void (*zrEventTxDone)(radio_tx_done_t);
 		
-		static uint8_t* onReceiveFrame(uint8_t, uint8_t*, uint8_t, int8_t, uint8_t);
+		static uint8_t* onReceiveFrame(uint8_t, uint8_t*, uint8_t, uint8_t);
 		static void onTxDone(radio_tx_done_t);
 		
 	public:
@@ -79,7 +79,7 @@ class cZigduinoRadio
 		void setFrameHeader(uint8_t*);
 		void attachError(void(*)(radio_error_t));
 		void attachIrq(void(*)(uint8_t));
-		void attachReceiveFrame(uint8_t* (*)(uint8_t, uint8_t*, uint8_t, int8_t, uint8_t));
+		void attachReceiveFrame(uint8_t* (*)(uint8_t, uint8_t*, uint8_t, uint8_t));
 		void attachTxDone(void(*)(radio_tx_done_t));
 		int8_t available();
 		int16_t peek();
@@ -101,8 +101,11 @@ class cZigduinoRadio
 		void setChannel(channel_t);
 		void forceState(radio_state_t);
 		void waitTxDone(uint16_t);
-		uint8_t getRssi();
+		int8_t getRssiNow();
+		int8_t getLastRssi();
 		uint8_t getLqi();
+		int8_t getLastEd();
+		int8_t getEdNow();
 };
 
 extern cZigduinoRadio ZigduinoRadio; // make single instance accessible

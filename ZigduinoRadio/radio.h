@@ -460,11 +460,10 @@ void usr_radio_irq(uint8_t cause);
  * @param len length of frame received
  * @param frm pointer to frame received
  * @param lqi LQI value reported by transceiver
- * @param rssi RSSI value obtained from transceiver
  * @param crc_fail boolean indicating whether the received frame failed FCS verification
  * @return address of new receive buffer
  */
-uint8_t * usr_radio_receive_frame(uint8_t len, uint8_t *frm, uint8_t lqi, int8_t rssi, uint8_t crc_fail);
+uint8_t * usr_radio_receive_frame(uint8_t len, uint8_t *frm, uint8_t lqi, uint8_t crc_fail);
 
 
 /**
