@@ -73,6 +73,9 @@
 #define MOD_OQPSK_1000 (7) /**< PHY modulation O-QPSK, 1000 kbit/s */
 #define MOD_OQPSK_2000 (8) /**< PHY modulation O-QPSK, 2000 kbit/s */
 
+/*=== RSSI base value (see datasheet) =====================*/
+#define RSSI_BASE_VAL (-90)
+
 
 /** @} */
 

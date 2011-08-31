@@ -45,6 +45,8 @@
 #if defined(TRX_IF_RFA1)
 /* === globals ============================================================= */
 static radio_status_t radiostatus;
+extern uint8_t temprssi;
+uint8_t temprssi;
 //trx_param_t PROGMEM radio_cfg_flash = RADIO_CFG_DATA;
 
 /* === prototypes ========================================================== */
@@ -72,18 +74,14 @@ void radio_error(radio_error_t err)
  */
 void radio_receive_frame(void)
 {
-
-uint8_t len, lqi, crc_fail;
-int8_t ed;
-
-    /* @todo add RSSI_BASE_VALUE to get a dBm value */
-    ed = (int8_t)trx_reg_read(RG_PHY_ED_LEVEL);
+    uint8_t len, lqi, crc_fail;
+    
     crc_fail = trx_bit_read(SR_RX_CRC_VALID) ? 0 : 1;
     len = trx_frame_read(radiostatus.rxframe, radiostatus.rxframesz, &lqi);
     len &= ~0x80;
 	
     radiostatus.rxframe = usr_radio_receive_frame(len, radiostatus.rxframe,
-                                                  lqi, ed, crc_fail);
+                                                  lqi, crc_fail);
 }
 
 /**
@@ -106,7 +104,7 @@ ISR(TRX24_RX_END_vect)
 ISR(TRX24_RX_START_vect)
 {
 	ZR_RFRX_LED_ON();
-	asm volatile ("nop");
+	temprssi = trx_reg_read(RG_PHY_RSSI);
 }
 
 

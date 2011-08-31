@@ -9,7 +9,7 @@ Watch the Rx Zigduino output what you've input into the serial port of the Tx Zi
 
 void setup()
 {
-  ZigduinoRadio.begin(0);
+  ZigduinoRadio.begin(11);
   Serial.begin(9600);
   
   ZigduinoRadio.attachError(errHandle);
@@ -49,8 +49,10 @@ void loop()
     Serial.print("LQI: ");
     Serial.print(ZigduinoRadio.getLqi(), 10);
     Serial.print(", RSSI: ");
-    Serial.print(ZigduinoRadio.getRssi(), 10);
-    Serial.println();
+    Serial.print(ZigduinoRadio.getLastRssi(), 10);
+    Serial.print(" dBm, ED: ");
+    Serial.print(ZigduinoRadio.getLastEd(), 10);
+    Serial.println("dBm");
   }
   
   delay(100);
@@ -60,7 +62,7 @@ void errHandle(radio_error_t err)
 {
   Serial.println();
   Serial.print("Error: ");
-  Serial.print((uint8_t)err);
+  Serial.print((uint8_t)err, 10);
   Serial.println();
 }
 

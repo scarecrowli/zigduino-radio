@@ -33,7 +33,7 @@
 
 void (*user_radio_error)(radio_error_t);
 void (*user_radio_irq)(uint8_t);
-uint8_t* (*user_radio_receive_frame)(uint8_t, uint8_t*, uint8_t, int8_t, uint8_t);
+uint8_t* (*user_radio_receive_frame)(uint8_t, uint8_t*, uint8_t, uint8_t);
 void (*user_radio_tx_done)(radio_tx_done_t);
 
 inline void usr_radio_error(radio_error_t err)
@@ -46,9 +46,9 @@ inline void usr_radio_irq(uint8_t cause)
 	if (user_radio_irq) user_radio_irq(cause);
 }
 
-inline uint8_t * usr_radio_receive_frame(uint8_t len, uint8_t *frm, uint8_t lqi, int8_t rssi, uint8_t crc_fail)
+inline uint8_t * usr_radio_receive_frame(uint8_t len, uint8_t *frm, uint8_t lqi, uint8_t crc_fail)
 {
-    if (user_radio_receive_frame) return user_radio_receive_frame(len, frm, lqi, rssi, crc_fail);
+    if (user_radio_receive_frame) return user_radio_receive_frame(len, frm, lqi, crc_fail);
 	else return frm;
 }
 

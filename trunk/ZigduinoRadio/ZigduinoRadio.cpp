@@ -41,9 +41,8 @@ uint8_t cZigduinoRadio::rxRingBufferTail = 0;
 uint8_t cZigduinoRadio::txTmpBuffer[ZR_TXTMPBUFF_SIZE];
 uint8_t cZigduinoRadio::txTmpBufferLength = 0;
 
-// these two stores the last link quality and receiver signal strength
+// these two stores the last link quality
 uint8_t cZigduinoRadio::lastLqi = 0;
-uint8_t cZigduinoRadio::lastRssi = VOID_RSSI;
 
 // these are used to indicate whether or not the user has attached event handlers
 uint8_t cZigduinoRadio::hasAttachedRxEvent = 0;
@@ -57,7 +56,7 @@ uint8_t cZigduinoRadio::usedBeginTransmission = 0;
 volatile uint8_t cZigduinoRadio::txIsBusy = 0;
 
 // function pointers for events
-uint8_t* (*cZigduinoRadio::zrEventReceiveFrame)(uint8_t, uint8_t*, uint8_t, int8_t, uint8_t);
+uint8_t* (*cZigduinoRadio::zrEventReceiveFrame)(uint8_t, uint8_t*, uint8_t, uint8_t);
 void (*cZigduinoRadio::zrEventTxDone)(radio_tx_done_t);
 
 // empty constructor, should not be called by user
@@ -79,7 +78,7 @@ cZigduinoRadio::cZigduinoRadio()
  * It prepares the frame header.
  * Then it sets the channel number and defaults to RX state.
  *
- * @param chan the channel number for the radio to use
+ * @param chan the channel number for the radio to use, 11 to 26
  */
 void cZigduinoRadio::begin(channel_t chan)
 {
@@ -91,7 +90,7 @@ void cZigduinoRadio::begin(channel_t chan)
  *
  * Overload for radio initalization that allows for the user to set a custom frame header
  *
- * @param chan channel number for the radio to use
+ * @param chan channel number for the radio to use, 11 to 26
  * @param frameHeader 7 byte custom frame header
  */
 void cZigduinoRadio::begin(channel_t chan, uint8_t* frameHeader)
@@ -178,7 +177,7 @@ void cZigduinoRadio::attachIrq(void (*funct)(uint8_t))
  *
  * @param funct the function pointer to the event handler
  */
-void cZigduinoRadio::attachReceiveFrame(uint8_t* (*funct)(uint8_t, uint8_t*, uint8_t, int8_t, uint8_t))
+void cZigduinoRadio::attachReceiveFrame(uint8_t* (*funct)(uint8_t, uint8_t*, uint8_t, uint8_t))
 {
 	zrEventReceiveFrame = funct;
 	hasAttachedRxEvent = (funct == 0) ? 0 : 1;
@@ -212,13 +211,11 @@ void cZigduinoRadio::attachTxDone(void (*funct)(radio_tx_done_t))
  * @param len length of the frame
  * @param frm array containing frame data
  * @param lqi link quality indicator
- * @param rssi receiver signal strength indicator
  * @param crc_fail boolean indicating whether the received frame failed FCS verification, not used
  */
-uint8_t* cZigduinoRadio::onReceiveFrame(uint8_t len, uint8_t *frm, uint8_t lqi, int8_t rssi, uint8_t crc_fail)
+uint8_t* cZigduinoRadio::onReceiveFrame(uint8_t len, uint8_t *frm, uint8_t lqi, uint8_t crc_fail)
 {
 	lastLqi = lqi;
-	lastRssi = rssi;
 	if (hasAttachedRxEvent == 0)
 	{
 		// no event handler, so write it into the FIFO
@@ -269,7 +266,7 @@ uint8_t* cZigduinoRadio::onReceiveFrame(uint8_t len, uint8_t *frm, uint8_t lqi, 
 	else
 	{
 		// user event is attached so call it
-		zrEventReceiveFrame(len, frm, lqi, rssi, crc_fail);
+		zrEventReceiveFrame(len, frm, lqi, crc_fail);
 	}
 }
 
@@ -614,7 +611,7 @@ void cZigduinoRadio::forceState(radio_state_t state)
  *
  * changes the radio channel by setting the radio channel state
  *
- * @param chan channel number
+ * @param chan channel number, 11 to 26
  */
 void cZigduinoRadio::setChannel(channel_t chan)
 {
@@ -622,15 +619,46 @@ void cZigduinoRadio::setChannel(channel_t chan)
 }
 
 /**
- * @brief Read Receiver Signal Strength Indicator
+ * @brief Read Receiver Signal Strength Indicator Now
  *
- * returns the RSSI of the last transmission received
+ * returns the current RSSI
+ *
+ * range is between -91 and -9 dBm
+ * where -9 is the best
  *
  * @return RSSI of the last transmission received
  */
-uint8_t cZigduinoRadio::getRssi()
+int8_t cZigduinoRadio::getRssiNow()
 {
-	return lastRssi;
+    int16_t rssi = ((int16_t)(trx_reg_read(RG_PHY_RSSI) & 0x1F)); // mask only important bits
+    rssi = (rssi == 0) ? (RSSI_BASE_VAL - 1) : ((rssi < 28) ? ((rssi - 1) * 3 + RSSI_BASE_VAL) : -9);
+    // if 0, then rssi < -90, if 28, then >= -10
+	
+	return rssi;
+}
+
+// this provides access to the temporary RSSI global inside radio_rfa.c
+extern "C" {
+extern uint8_t temprssi;
+}
+
+/**
+ * @brief Read Last Receiver Signal Strength Indicator
+ *
+ * returns the RSSI of the last transmission
+ *
+ * range is between -91 and -9 dBm
+ * where -9 is the best
+ *
+ * @return RSSI of the last transmission received
+ */
+int8_t cZigduinoRadio::getLastRssi()
+{
+    int16_t rssi = ((int16_t)(temprssi & 0x1F)); // mask only important bits
+    rssi = (rssi == 0) ? (RSSI_BASE_VAL - 1) : ((rssi < 28) ? ((rssi - 1) * 3 + RSSI_BASE_VAL) : -9);
+    // if 0, then rssi < -90, if 28, then >= -10
+	
+	return rssi;
 }
 
 /**
@@ -638,11 +666,48 @@ uint8_t cZigduinoRadio::getRssi()
  *
  * returns the LQI of the last transmission received
  *
+ * range is from 0 to 255
+ * 255 is the best
+ *
  * @return LQI of the last transmission received
  */
 uint8_t cZigduinoRadio::getLqi()
 {
 	return lastLqi;
+}
+
+/**
+ * @brief Read Last Energy Detection Level
+ *
+ * returns the ED level of the last transmission received
+ *
+ * range is between -90 and -6 dBm
+ * where -6 is the best
+ *
+ * @return ED level of the last transmission received
+ */
+int8_t cZigduinoRadio::getLastEd()
+{
+    int8_t ed = trx_reg_read(RG_PHY_ED_LEVEL);
+	
+	return ed == 0xFF ? 0 : (ed + RSSI_BASE_VAL);
+}
+
+/**
+ * @brief Read Energy Detection Level Now
+ *
+ * forces a reading of the ED level
+ *
+ * range is between -90 and -6 dBm
+ * where -6 is the best
+ *
+ * @return ED level
+ */
+int8_t cZigduinoRadio::getEdNow()
+{
+    trx_reg_write(RG_PHY_ED_LEVEL, 0); // forces a reading
+	
+	return getLastEd();
 }
 
 /**
