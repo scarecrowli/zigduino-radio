@@ -26,48 +26,42 @@
    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
    POSSIBILITY OF SUCH DAMAGE. */
    
-#include "ZigduinoRadio.h"
+#include "ZigduinoRadioInC.h"
 #include "ZigduinoRadioEvents.h"
 
 // this is used as the main buffer for all received data frames
-uint8_t cZigduinoRadio::rxFrameBuffer[ZR_RXFRMBUFF_SIZE];
+uint8_t zr_rxFrameBuffer[ZRC_RXFRMBUFF_SIZE];
 
 // this is a ring FIFO buffer, used for the read/peek/available/flush functions
-uint8_t cZigduinoRadio::rxRingBuffer[ZR_FIFO_SIZE];
-uint8_t cZigduinoRadio::rxRingBufferHead = 0;
-uint8_t cZigduinoRadio::rxRingBufferTail = 0;
+uint8_t zr_rxRingBuffer[ZRC_FIFO_SIZE];
+uint8_t zr_rxRingBufferHead = 0;
+uint8_t zr_rxRingBufferTail = 0;
 
 // this is a temporary storage buffer for use with non-immediate transmission functions
-uint8_t cZigduinoRadio::txTmpBuffer[ZR_TXTMPBUFF_SIZE];
-uint8_t cZigduinoRadio::txTmpBufferLength = 0;
+uint8_t zr_txTmpBuffer[ZRC_TXTMPBUFF_SIZE];
+uint8_t zr_txTmpBufferLength = 0;
 
 // these two stores the last link quality
-uint8_t cZigduinoRadio::lastLqi = 0;
+uint8_t zr_lastLqi = 0;
 
 // these are used to indicate whether or not the user has attached event handlers
-uint8_t cZigduinoRadio::hasAttachedRxEvent = 0;
-uint8_t cZigduinoRadio::hasAttachedTxEvent = 0;
+uint8_t zr_hasAttachedRxEvent = 0;
+uint8_t zr_hasAttachedTxEvent = 0;
 
 // the write function checks if beginTransmission was called prior to write
 // in order to determine whether to use immediate or non-immediate transmission
-uint8_t cZigduinoRadio::usedBeginTransmission = 0;
+uint8_t zr_usedBeginTransmission = 0;
 
 // a busy indicator so transmit functions can wait until the last transmission has finished
-volatile uint8_t cZigduinoRadio::txIsBusy = 0;
+volatile uint8_t zr_txIsBusy = 0;
 
 // function pointers for events
-uint8_t* (*cZigduinoRadio::zrEventReceiveFrame)(uint8_t, uint8_t*, uint8_t, uint8_t);
-void (*cZigduinoRadio::zrEventTxDone)(radio_tx_done_t);
+uint8_t* (*zr_zrEventReceiveFrame)(uint8_t, uint8_t*, uint8_t, uint8_t);
+void (*zr_zrEventTxDone)(radio_tx_done_t);
 
-// empty constructor, should not be called by user
-cZigduinoRadio::cZigduinoRadio()
-{
-	// default event handlers
-	user_radio_error = 0;
-	user_radio_irq = 0;
-	zr_attach_receive_frame(onReceiveFrame);
-	zr_attach_tx_done(onTxDone);
-}
+// private function prototypes
+uint8_t* zr_onReceiveFrame(uint8_t, uint8_t*, uint8_t, uint8_t);
+void zr_onTxDone(radio_tx_done_t);
 
 /**
  * @brief Radio Initialization
@@ -78,36 +72,29 @@ cZigduinoRadio::cZigduinoRadio()
  * It prepares the frame header.
  * Then it sets the channel number and defaults to RX state.
  *
- * @param chan the channel number for the radio to use, 11 to 26
- */
-void cZigduinoRadio::begin(channel_t chan)
-{
-	begin(chan, 0);
-}
-
-/**
- * @brief Radio Initialization
- *
- * Overload for radio initalization that allows for the user to set a custom frame header
- *
  * @param chan channel number for the radio to use, 11 to 26
- * @param frameHeader 7 byte custom frame header
+ * @param frameHeader 7 byte custom frame header, or null if you want to use a default frame header
  */
-void cZigduinoRadio::begin(channel_t chan, uint8_t* frameHeader)
+void zr_init(channel_t chan, uint8_t* frameHeader)
 {
-	radio_init(rxFrameBuffer, MAX_FRAME_SIZE);
+	user_radio_error = 0;
+	user_radio_irq = 0;
+	zr_attach_receive_frame(zr_onReceiveFrame);
+	zr_attach_tx_done(zr_onTxDone);
+	
+	radio_init(zr_rxFrameBuffer, MAX_FRAME_SIZE);
 	
 	if (frameHeader)
 	{
 		// copy custom frame header
 		int i;
 		for (i = 0; i < 7; i++)
-			txTmpBuffer[i] = frameHeader[i];
+			zr_txTmpBuffer[i] = frameHeader[i];
 	}
 	else
 	{
 		// fixed frame header
-		txTmpBuffer[0] = 0x01; txTmpBuffer[1] = 0x80; txTmpBuffer[2] =  0; txTmpBuffer[3] = 0x11; txTmpBuffer[4] = 0x22; txTmpBuffer[5] = 0x33; txTmpBuffer[6] = 0x44;
+		zr_txTmpBuffer[0] = 0x01; zr_txTmpBuffer[1] = 0x80; zr_txTmpBuffer[2] =  0; zr_txTmpBuffer[3] = 0x11; zr_txTmpBuffer[4] = 0x22; zr_txTmpBuffer[5] = 0x33; zr_txTmpBuffer[6] = 0x44;
 	}
 	
 	// set the channel
@@ -133,12 +120,12 @@ void cZigduinoRadio::begin(channel_t chan, uint8_t* frameHeader)
  *
  * @param frameHeader 7 byte custom frame header
  */
-void cZigduinoRadio::setFrameHeader(uint8_t* frameHeader)
+void zr_setFrameHeader(uint8_t* frameHeader)
 {
 	// copy custom frame header
 	int i;
 	for (i = 0; i < 7; i++)
-		txTmpBuffer[i] = frameHeader[i];
+		zr_txTmpBuffer[i] = frameHeader[i];
 }
 
 /**
@@ -149,7 +136,7 @@ void cZigduinoRadio::setFrameHeader(uint8_t* frameHeader)
  *
  * @param funct the function pointer to the event handler
  */
-void cZigduinoRadio::attachError(void (*funct)(radio_error_t))
+void zr_attachError(void (*funct)(radio_error_t))
 {
 	user_radio_error = funct;
 }
@@ -162,7 +149,7 @@ void cZigduinoRadio::attachError(void (*funct)(radio_error_t))
  *
  * @param funct the function pointer to the event handler
  */
-void cZigduinoRadio::attachIrq(void (*funct)(uint8_t))
+void zr_attachIrq(void (*funct)(uint8_t))
 {
 	user_radio_irq = funct;
 }
@@ -177,10 +164,10 @@ void cZigduinoRadio::attachIrq(void (*funct)(uint8_t))
  *
  * @param funct the function pointer to the event handler
  */
-void cZigduinoRadio::attachReceiveFrame(uint8_t* (*funct)(uint8_t, uint8_t*, uint8_t, uint8_t))
+void zr_attachReceiveFrame(uint8_t* (*funct)(uint8_t, uint8_t*, uint8_t, uint8_t))
 {
-	zrEventReceiveFrame = funct;
-	hasAttachedRxEvent = (funct == 0) ? 0 : 1;
+	zr_zrEventReceiveFrame = funct;
+	zr_hasAttachedRxEvent = (funct == 0) ? 0 : 1;
 }
 
 /**
@@ -192,10 +179,10 @@ void cZigduinoRadio::attachReceiveFrame(uint8_t* (*funct)(uint8_t, uint8_t*, uin
  *
  * @param funct the function pointer to the event handler
  */
-void cZigduinoRadio::attachTxDone(void (*funct)(radio_tx_done_t))
+void zr_attachTxDone(void (*funct)(radio_tx_done_t))
 {
-	zrEventTxDone = funct;
-	hasAttachedTxEvent = (funct == 0) ? 0 : 1;
+	zr_zrEventTxDone = funct;
+	zr_hasAttachedTxEvent = (funct == 0) ? 0 : 1;
 }
 
 /**
@@ -213,10 +200,10 @@ void cZigduinoRadio::attachTxDone(void (*funct)(radio_tx_done_t))
  * @param lqi link quality indicator
  * @param crc_fail boolean indicating whether the received frame failed FCS verification, not used
  */
-uint8_t* cZigduinoRadio::onReceiveFrame(uint8_t len, uint8_t* frm, uint8_t lqi, uint8_t crc_fail)
+uint8_t* zr_onReceiveFrame(uint8_t len, uint8_t* frm, uint8_t lqi, uint8_t crc_fail)
 {
-	lastLqi = lqi;
-	if (hasAttachedRxEvent == 0)
+	zr_lastLqi = lqi;
+	if (zr_hasAttachedRxEvent == 0)
 	{
 		// no event handler, so write it into the FIFO
 		
@@ -225,14 +212,15 @@ uint8_t* cZigduinoRadio::onReceiveFrame(uint8_t len, uint8_t* frm, uint8_t lqi, 
 			// frame header exists
 			// copy only payload
 			
-			for (uint8_t i = 7; i < len - 2; i++)
+			uint8_t i;
+			for (i = 7; i < len - 2; i++)
 			{
-				uint16_t j = ((uint16_t)((uint16_t)rxRingBufferHead + 1)) % ZR_FIFO_SIZE;
-				if (j != rxRingBufferTail)
+				uint16_t j = ((uint16_t)((uint16_t)zr_rxRingBufferHead + 1)) % ZRC_FIFO_SIZE;
+				if (j != zr_rxRingBufferTail)
 				{
 					// push into FIFO
-					rxRingBuffer[rxRingBufferHead] = frm[i];
-					rxRingBufferHead = j;
+					zr_rxRingBuffer[zr_rxRingBufferHead] = frm[i];
+					zr_rxRingBufferHead = j;
 				}
 				else
 				{
@@ -245,15 +233,15 @@ uint8_t* cZigduinoRadio::onReceiveFrame(uint8_t len, uint8_t* frm, uint8_t lqi, 
 		{
 			// frame header does not exist
 			// copy everything
-			
-			for (uint8_t i = 0; i < len; i++)
+			uint8_t i;
+			for (i = 0; i < len; i++)
 			{
-				uint16_t j = ((uint16_t)((uint16_t)rxRingBufferHead + 1)) % ZR_FIFO_SIZE;
-				if (j != rxRingBufferTail)
+				uint16_t j = ((uint16_t)((uint16_t)zr_rxRingBufferHead + 1)) % ZRC_FIFO_SIZE;
+				if (j != zr_rxRingBufferTail)
 				{
 					// push into FIFO
-					rxRingBuffer[rxRingBufferHead] = frm[i];
-					rxRingBufferHead = j;
+					zr_rxRingBuffer[zr_rxRingBufferHead] = frm[i];
+					zr_rxRingBufferHead = j;
 				}
 				else
 				{
@@ -262,13 +250,11 @@ uint8_t* cZigduinoRadio::onReceiveFrame(uint8_t len, uint8_t* frm, uint8_t lqi, 
 				}
 			}
 		}
-		
-		return rxRingBuffer;
 	}
 	else
 	{
 		// user event is attached so call it
-		return zrEventReceiveFrame(len, frm, lqi, crc_fail);
+		zr_zrEventReceiveFrame(len, frm, lqi, crc_fail);
 	}
 }
 
@@ -277,9 +263,9 @@ uint8_t* cZigduinoRadio::onReceiveFrame(uint8_t len, uint8_t* frm, uint8_t lqi, 
  *
  * Flush the RX FIFO ring buffer
  */
-void cZigduinoRadio::flush()
+void zr_flush()
 {
-	rxRingBufferHead = rxRingBufferTail;
+	zr_rxRingBufferHead = zr_rxRingBufferTail;
 }
 
 /**
@@ -289,17 +275,17 @@ void cZigduinoRadio::flush()
  *
  * @return the next byte, or -1 if buffer is empty
  */
-int16_t cZigduinoRadio::read()
+int16_t zr_read()
 {
 	// if the head isn't ahead of the tail, we don't have any characters
-	if (rxRingBufferHead == rxRingBufferTail)
+	if (zr_rxRingBufferHead == zr_rxRingBufferTail)
 	{
 		return -1;
 	}
 	else
 	{
-		uint8_t c = rxRingBuffer[rxRingBufferTail];
-		rxRingBufferTail = (rxRingBufferTail + 1) % ZR_FIFO_SIZE; // pop
+		uint8_t c = zr_rxRingBuffer[zr_rxRingBufferTail];
+		zr_rxRingBufferTail = (zr_rxRingBufferTail + 1) % ZRC_FIFO_SIZE; // pop
 		return c;
 	}
 }
@@ -311,16 +297,16 @@ int16_t cZigduinoRadio::read()
  *
  * @return the next byte, or -1 if buffer is empty
  */
-int16_t cZigduinoRadio::peek()
+int16_t zr_peek()
 {
 	// if the head isn't ahead of the tail, we don't have any characters
-	if (rxRingBufferHead == rxRingBufferTail)
+	if (zr_rxRingBufferHead == zr_rxRingBufferTail)
 	{
 		return -1;
 	}
 	else
 	{
-		uint8_t c = rxRingBuffer[rxRingBufferTail];
+		uint8_t c = zr_rxRingBuffer[zr_rxRingBufferTail];
 		return c;
 	}
 }
@@ -332,9 +318,9 @@ int16_t cZigduinoRadio::peek()
  *
  * @return how many bytes are in the RX FIFO ring buffer
  */
-int8_t cZigduinoRadio::available()
+int8_t zr_available()
 {
-	return ((int16_t)((int16_t)ZR_FIFO_SIZE + (int16_t)rxRingBufferHead - (int16_t)rxRingBufferTail)) % ZR_FIFO_SIZE;
+	return ((int16_t)((int16_t)ZRC_FIFO_SIZE + (int16_t)zr_rxRingBufferHead - (int16_t)zr_rxRingBufferTail)) % ZRC_FIFO_SIZE;
 }
 
 /**
@@ -346,19 +332,19 @@ int8_t cZigduinoRadio::available()
  * @param frm array containing frame data
  * @param len length of the frame
  */
-void cZigduinoRadio::txFrame(uint8_t* frm, uint8_t len)
+void zr_txFrame(uint8_t* frm, uint8_t len)
 {
-	#ifdef ZR_TXWAIT_BEFORE
-	waitTxDone(0xFFFF);
+	#ifdef ZRC_TXWAIT_BEFORE
+	zr_waitTxDone(0xFFFF);
 	#endif
-	txIsBusy = 1;
+	zr_txIsBusy = 1;
 	radio_set_state(STATE_TX);
 	ZR_RFTX_LED_ON();
 	radio_send_frame(len, frm, 0);
-	#ifdef ZR_TXWAIT_AFTER
-	waitTxDone(0xFFFF);
+	#ifdef ZRC_TXWAIT_AFTER
+	zr_waitTxDone(0xFFFF);
 	radio_set_state(STATE_RX);
-	txIsBusy = 0;
+	zr_txIsBusy = 0;
 	#endif
 }
 
@@ -369,12 +355,12 @@ void cZigduinoRadio::txFrame(uint8_t* frm, uint8_t len)
  * Non-immediate mode sends multiple bytes per frame
  *
  */
-void cZigduinoRadio::beginTransmission()
+void zr_beginTransmission()
 {
-	usedBeginTransmission = 1;
+	zr_usedBeginTransmission = 1;
 	
 	// add frame header
-	txTmpBufferLength = 7;
+	zr_txTmpBufferLength = 7;
 }
 
 /**
@@ -383,24 +369,24 @@ void cZigduinoRadio::beginTransmission()
  * Finalize the payload and transmits it when ready
  *
  */
-void cZigduinoRadio::endTransmission()
+void zr_endTransmission()
 {
-	usedBeginTransmission = 0;
+	zr_usedBeginTransmission = 0;
 	
 	// empty FCS field
-	txTmpBufferLength += 2;
+	zr_txTmpBufferLength += 2;
 	
-	#ifdef ZR_TXWAIT_BEFORE
-	waitTxDone(0xFFFF);
+	#ifdef ZRC_TXWAIT_BEFORE
+	zr_waitTxDone(0xFFFF);
 	#endif
-	txIsBusy = 1;
+	zr_txIsBusy = 1;
 	radio_set_state(STATE_TX);
 	ZR_RFTX_LED_ON();
-	radio_send_frame(txTmpBufferLength, txTmpBuffer, 0);
-	#ifdef ZR_TXWAIT_AFTER
-	waitTxDone(0xFFFF);
+	radio_send_frame(zr_txTmpBufferLength, zr_txTmpBuffer, 0);
+	#ifdef ZRC_TXWAIT_AFTER
+	zr_waitTxDone(0xFFFF);
 	radio_set_state(STATE_RX);
-	txIsBusy = 0;
+	zr_txIsBusy = 0;
 	#endif
 }
 
@@ -412,12 +398,12 @@ void cZigduinoRadio::endTransmission()
  * Warning: does not actually cancel a transmission in progress
  *
  */
-void cZigduinoRadio::cancelTransmission()
+void zr_cancelTransmission()
 {
-	usedBeginTransmission = 0;
+	zr_usedBeginTransmission = 0;
 	
 	// add frame header
-	txTmpBufferLength = 7;
+	zr_txTmpBufferLength = 7;
 }
 
 /**
@@ -426,9 +412,9 @@ void cZigduinoRadio::cancelTransmission()
  * Wrapper for "write", since the "Wire" library uses "send"
  *
  */
-void cZigduinoRadio::send(uint8_t c)
+void zr_send(uint8_t c)
 {
-	write(c);
+	zr_write(c);
 }
 
 /**
@@ -439,41 +425,41 @@ void cZigduinoRadio::send(uint8_t c)
  *
  * @param c character to be sent
  */
-void cZigduinoRadio::write(uint8_t c)
+void zr_write(uint8_t c)
 {
-	if (usedBeginTransmission)
+	if (zr_usedBeginTransmission)
 	{
-		if (txTmpBufferLength < ZR_TXTMPBUFF_SIZE - 2)
+		if (zr_txTmpBufferLength < ZRC_TXTMPBUFF_SIZE - 2)
 		{
-			txTmpBuffer[txTmpBufferLength] = c;
-			txTmpBufferLength++;
+			zr_txTmpBuffer[zr_txTmpBufferLength] = c;
+			zr_txTmpBufferLength++;
 			
-			if (txTmpBufferLength >= ZR_TXTMPBUFF_SIZE - 2)
+			if (zr_txTmpBufferLength >= ZRC_TXTMPBUFF_SIZE - 2)
 			{
 				// buffer is now full
 				// just send it all out so we have more room
-				endTransmission();
-				beginTransmission();
+				zr_endTransmission();
+				zr_beginTransmission();
 			}
 		}
 	}
 	else
 	{
-		txTmpBuffer[7] = c; // set payload
-		txTmpBuffer[8] = 0; // empty FCS
-		txTmpBuffer[9] = 0; // empty FCS
+		zr_txTmpBuffer[7] = c; // set payload
+		zr_txTmpBuffer[8] = 0; // empty FCS
+		zr_txTmpBuffer[9] = 0; // empty FCS
 		
-		#ifdef ZR_TXWAIT_BEFORE
-		waitTxDone(0xFFFF);
+		#ifdef ZRC_TXWAIT_BEFORE
+		zr_waitTxDone(0xFFFF);
 		#endif
-		txIsBusy = 1;
+		zr_txIsBusy = 1;
 		radio_set_state(STATE_TX);
 		ZR_RFTX_LED_ON();
-		radio_send_frame(10, txTmpBuffer, 0);
-		#ifdef ZR_TXWAIT_AFTER
-		waitTxDone(0xFFFF);
+		radio_send_frame(10, zr_txTmpBuffer, 0);
+		#ifdef ZRC_TXWAIT_AFTER
+		zr_waitTxDone(0xFFFF);
 		radio_set_state(STATE_RX);
-		txIsBusy = 0;
+		zr_txIsBusy = 0;
 		#endif
 	}
 }
@@ -485,25 +471,25 @@ void cZigduinoRadio::write(uint8_t c)
  *
  * @param str null-terminated string to be sent
  */
-void cZigduinoRadio::write(char* str)
+void zr_writeStr(char* str)
 {
 	while (*str)
-		write(*str++);
+		zr_write(*str++);
 }
 
 /**
- * @brief TX an Array
+ * @brief TX a String
  *
  * A overload for "write" that sends an array
  *
  * @param arr data array to be sent
  * @param len length of data array
  */
-void cZigduinoRadio::write(uint8_t* arr, uint8_t len)
+void zr_writeArr(uint8_t* arr, uint8_t len)
 {
 	uint8_t i;
 	for (i = 0; i < len; i++)
-		write(arr[i]);
+		zr_write(arr[i]);
 }
 
 /**
@@ -517,14 +503,14 @@ void cZigduinoRadio::write(uint8_t* arr, uint8_t len)
  *
  * @param x one of the radio_tx_done_t enumerations indicating transmission success
  */
-void cZigduinoRadio::onTxDone(radio_tx_done_t x)
+void zr_onTxDone(radio_tx_done_t x)
 {
-	if (hasAttachedTxEvent)
+	if (zr_hasAttachedTxEvent)
 	{
-		zrEventTxDone(x);
+		zr_zrEventTxDone(x);
 	}
 	
-	txIsBusy = 0;
+	zr_txIsBusy = 0;
 }
 
 /**
@@ -534,7 +520,7 @@ void cZigduinoRadio::onTxDone(radio_tx_done_t x)
  *
  * see radio.h for more info
  */
-void cZigduinoRadio::setParam(radio_attribute_t attr, radio_param_t parm)
+void zr_setParam(radio_attribute_t attr, radio_param_t parm)
 {
 	radio_set_param(attr, parm);
 }
@@ -546,27 +532,9 @@ void cZigduinoRadio::setParam(radio_attribute_t attr, radio_param_t parm)
  *
  * see radio.h for more info
  */
-radio_cca_t cZigduinoRadio::doCca()
+radio_cca_t zr_doCca()
 {
 	return radio_do_cca();
-}
-
-/**
- * @brief Set Radio State Wrapper
- *
- * sets or forces the radio into a state
- *
- * see radio.h for more info
- *
- * @param state requested radio state
- * @param force boolean indicating to force the state
- */
-void cZigduinoRadio::setState(radio_state_t state, uint8_t force)
-{
-	if (force)
-		radio_force_state(state);
-	else
-		radio_set_state(state);
 }
 
 /**
@@ -576,7 +544,7 @@ void cZigduinoRadio::setState(radio_state_t state, uint8_t force)
  *
  * see radio.h for more info
  */
-void cZigduinoRadio::setState(radio_state_t state)
+void zr_setState(radio_state_t state)
 {
 	radio_set_state(state);
 }
@@ -586,12 +554,12 @@ void cZigduinoRadio::setState(radio_state_t state)
  *
  * bring the the radio in the requested state of STATE_RX
  *
- * the radio state does not return to STATE_RX automatically if ZR_TXWAIT_AFTER is not used
+ * the radio state does not return to STATE_RX automatically if ZRC_TXWAIT_AFTER is not used
  * thus why this is provided
  *
  * see radio.h for more info
  */
-void cZigduinoRadio::setStateRx()
+void zr_setStateRx()
 {
 	radio_set_state(STATE_RX);
 }
@@ -603,7 +571,7 @@ void cZigduinoRadio::setStateRx()
  *
  * see radio.h for more info
  */
-void cZigduinoRadio::forceState(radio_state_t state)
+void zr_forceState(radio_state_t state)
 {
 	radio_force_state(state);
 }
@@ -615,7 +583,7 @@ void cZigduinoRadio::forceState(radio_state_t state)
  *
  * @param chan channel number, 11 to 26
  */
-void cZigduinoRadio::setChannel(channel_t chan)
+void zr_setChannel(channel_t chan)
 {
 	radio_set_param(RP_CHANNEL(chan));
 }
@@ -630,7 +598,7 @@ void cZigduinoRadio::setChannel(channel_t chan)
  *
  * @return RSSI of the last transmission received
  */
-int8_t cZigduinoRadio::getRssiNow()
+int8_t zr_getRssiNow()
 {
     int16_t rssi = ((int16_t)(trx_reg_read(RG_PHY_RSSI) & 0x1F)); // mask only important bits
     rssi = (rssi == 0) ? (RSSI_BASE_VAL - 1) : ((rssi < 28) ? ((rssi - 1) * 3 + RSSI_BASE_VAL) : -9);
@@ -640,9 +608,7 @@ int8_t cZigduinoRadio::getRssiNow()
 }
 
 // this provides access to the temporary RSSI global inside radio_rfa.c
-extern "C" {
 extern uint8_t temprssi;
-}
 
 /**
  * @brief Read Last Receiver Signal Strength Indicator
@@ -654,7 +620,7 @@ extern uint8_t temprssi;
  *
  * @return RSSI of the last transmission received
  */
-int8_t cZigduinoRadio::getLastRssi()
+int8_t zr_getLastRssi()
 {
     int16_t rssi = ((int16_t)(temprssi & 0x1F)); // mask only important bits
     rssi = (rssi == 0) ? (RSSI_BASE_VAL - 1) : ((rssi < 28) ? ((rssi - 1) * 3 + RSSI_BASE_VAL) : -9);
@@ -673,9 +639,9 @@ int8_t cZigduinoRadio::getLastRssi()
  *
  * @return LQI of the last transmission received
  */
-uint8_t cZigduinoRadio::getLqi()
+uint8_t zr_getLqi()
 {
-	return lastLqi;
+	return zr_lastLqi;
 }
 
 /**
@@ -688,7 +654,7 @@ uint8_t cZigduinoRadio::getLqi()
  *
  * @return ED level of the last transmission received
  */
-int8_t cZigduinoRadio::getLastEd()
+int8_t zr_getLastEd()
 {
     int8_t ed = trx_reg_read(RG_PHY_ED_LEVEL);
 	
@@ -705,11 +671,11 @@ int8_t cZigduinoRadio::getLastEd()
  *
  * @return ED level
  */
-int8_t cZigduinoRadio::getEdNow()
+int8_t zr_getEdNow()
 {
     trx_reg_write(RG_PHY_ED_LEVEL, 0); // forces a reading
 	
-	return getLastEd();
+	return zr_getLastEd();
 }
 
 /**
@@ -719,11 +685,8 @@ int8_t cZigduinoRadio::getEdNow()
  *
  * @param timeout iterations to countdown before timeout
  */
-inline void cZigduinoRadio::waitTxDone(uint16_t timeout)
+inline void zr_waitTxDone(uint16_t timeout)
 {
 	volatile uint16_t cnt = timeout;
-	while (txIsBusy && cnt--);
+	while (zr_txIsBusy && cnt--);
 }
-
-// create single instance that is accessible to the user
-cZigduinoRadio ZigduinoRadio = cZigduinoRadio();
