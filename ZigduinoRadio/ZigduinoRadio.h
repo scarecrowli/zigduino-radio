@@ -32,11 +32,11 @@
 extern "C" {
 #endif
 
-# include "ZigduinoRadioCfg.h"
+#include "ZigduinoRadioCfg.h"
 
-# include "radio.h"
-# include "board.h"
-# include "transceiver.h"
+#include "radio.h"
+#include "board.h"
+#include "transceiver.h"
 
 #ifdef __cplusplus
 } /* extern "C" */
