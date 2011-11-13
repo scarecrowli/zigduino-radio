@@ -1,5 +1,12 @@
 ZigduinoRadio Arduino Library 20110826
  Porting uracoli 0.1.0rc1 to Arduino, for use with Zigduino
+ Fixed minor warning about the on Rx event's return type
+ Corrected some comments
+ Added C-only implementation
+ Fixed compilation issues by removing some "inline" 
+
+ZigduinoRadio Arduino Library 20110826
+ Porting uracoli 0.1.0rc1 to Arduino, for use with Zigduino
 
 0.1.0rc1
  New Features

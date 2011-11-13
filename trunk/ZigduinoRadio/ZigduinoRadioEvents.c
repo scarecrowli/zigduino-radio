@@ -31,10 +31,10 @@
 #include "board.h"
 #include "transceiver.h"
 
-void (*user_radio_error)(radio_error_t);
-void (*user_radio_irq)(uint8_t);
-uint8_t* (*user_radio_receive_frame)(uint8_t, uint8_t*, uint8_t, uint8_t);
-void (*user_radio_tx_done)(radio_tx_done_t);
+void (*user_radio_error)(radio_error_t) = 0;
+void (*user_radio_irq)(uint8_t) = 0;
+uint8_t* (*user_radio_receive_frame)(uint8_t, uint8_t*, uint8_t, uint8_t) = 0;
+void (*user_radio_tx_done)(radio_tx_done_t) = 0;
 
 inline void usr_radio_error(radio_error_t err)
 {
@@ -57,22 +57,22 @@ inline void usr_radio_tx_done(radio_tx_done_t status)
 	if (user_radio_tx_done) user_radio_tx_done(status);
 }
 
-inline void zr_attach_error(void (*funct)(radio_error_t))
+void zr_attach_error(void (*funct)(radio_error_t))
 {
 	user_radio_error = funct;
 }
 
-inline void zr_attach_irq(void (*funct)(uint8_t))
+void zr_attach_irq(void (*funct)(uint8_t))
 {
 	user_radio_irq = funct;
 }
 
-inline void zr_attach_receive_frame(uint8_t* (*funct)(uint8_t, uint8_t*, uint8_t, int8_t, uint8_t))
+void zr_attach_receive_frame(uint8_t* (*funct)(uint8_t, uint8_t*, uint8_t, int8_t, uint8_t))
 {
 	user_radio_receive_frame = funct;
 }
 
-inline void zr_attach_tx_done(void (*funct)(radio_tx_done_t))
+void zr_attach_tx_done(void (*funct)(radio_tx_done_t))
 {
 	user_radio_tx_done = funct;
 }
