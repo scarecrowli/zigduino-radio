@@ -30,19 +30,19 @@
 #include "ZigduinoRadioEvents.h"
 
 // this is used as the main buffer for all received data frames
-uint8_t zr_rxFrameBuffer[ZRC_RXFRMBUFF_SIZE];
+volatile uint8_t zr_rxFrameBuffer[ZRC_RXFRMBUFF_SIZE];
 
 // this is a ring FIFO buffer, used for the read/peek/available/flush functions
-uint8_t zr_rxRingBuffer[ZRC_FIFO_SIZE];
-uint8_t zr_rxRingBufferHead = 0;
-uint8_t zr_rxRingBufferTail = 0;
+volatile uint8_t zr_rxRingBuffer[ZRC_FIFO_SIZE];
+volatile uint8_t zr_rxRingBufferHead = 0;
+volatile uint8_t zr_rxRingBufferTail = 0;
 
 // this is a temporary storage buffer for use with non-immediate transmission functions
 uint8_t zr_txTmpBuffer[ZRC_TXTMPBUFF_SIZE];
 uint8_t zr_txTmpBufferLength = 0;
 
 // these two stores the last link quality
-uint8_t zr_lastLqi = 0;
+volatile uint8_t zr_lastLqi = 0;
 
 // these are used to indicate whether or not the user has attached event handlers
 uint8_t zr_hasAttachedRxEvent = 0;
@@ -82,7 +82,7 @@ void zr_init(channel_t chan, uint8_t* frameHeader)
 	zr_attach_receive_frame(zr_onReceiveFrame);
 	zr_attach_tx_done(zr_onTxDone);
 	
-	radio_init(zr_rxFrameBuffer, MAX_FRAME_SIZE);
+	radio_init((uint8_t*)zr_rxFrameBuffer, MAX_FRAME_SIZE);
 	
 	if (frameHeader)
 	{
@@ -250,6 +250,8 @@ uint8_t* zr_onReceiveFrame(uint8_t len, uint8_t* frm, uint8_t lqi, uint8_t crc_f
 				}
 			}
 		}
+		
+		return (uint8_t*)zr_rxRingBuffer;
 	}
 	else
 	{

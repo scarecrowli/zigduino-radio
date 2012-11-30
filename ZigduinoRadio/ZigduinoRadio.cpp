@@ -30,19 +30,19 @@
 #include "ZigduinoRadioEvents.h"
 
 // this is used as the main buffer for all received data frames
-uint8_t cZigduinoRadio::rxFrameBuffer[ZR_RXFRMBUFF_SIZE];
+volatile uint8_t cZigduinoRadio::rxFrameBuffer[ZR_RXFRMBUFF_SIZE];
 
 // this is a ring FIFO buffer, used for the read/peek/available/flush functions
-uint8_t cZigduinoRadio::rxRingBuffer[ZR_FIFO_SIZE];
-uint8_t cZigduinoRadio::rxRingBufferHead = 0;
-uint8_t cZigduinoRadio::rxRingBufferTail = 0;
+volatile uint8_t cZigduinoRadio::rxRingBuffer[ZR_FIFO_SIZE];
+volatile uint8_t cZigduinoRadio::rxRingBufferHead = 0;
+volatile uint8_t cZigduinoRadio::rxRingBufferTail = 0;
 
 // this is a temporary storage buffer for use with non-immediate transmission functions
 uint8_t cZigduinoRadio::txTmpBuffer[ZR_TXTMPBUFF_SIZE];
 uint8_t cZigduinoRadio::txTmpBufferLength = 0;
 
 // these two stores the last link quality
-uint8_t cZigduinoRadio::lastLqi = 0;
+volatile uint8_t cZigduinoRadio::lastLqi = 0;
 
 // these are used to indicate whether or not the user has attached event handlers
 uint8_t cZigduinoRadio::hasAttachedRxEvent = 0;
@@ -95,7 +95,7 @@ void cZigduinoRadio::begin(channel_t chan)
  */
 void cZigduinoRadio::begin(channel_t chan, uint8_t* frameHeader)
 {
-	radio_init(rxFrameBuffer, MAX_FRAME_SIZE);
+	radio_init((uint8_t*)rxFrameBuffer, MAX_FRAME_SIZE);
 	
 	if (frameHeader)
 	{
@@ -263,7 +263,7 @@ uint8_t* cZigduinoRadio::onReceiveFrame(uint8_t len, uint8_t* frm, uint8_t lqi, 
 			}
 		}
 		
-		return rxRingBuffer;
+		return (uint8_t*)rxRingBuffer;
 	}
 	else
 	{

@@ -53,14 +53,14 @@ extern "C" {
 class cZigduinoRadio
 {
 	private:
-		static uint8_t rxFrameBuffer[];
-		static uint8_t rxRingBuffer[];
-		static uint8_t rxRingBufferHead;
-		static uint8_t rxRingBufferTail;
+		static volatile uint8_t rxFrameBuffer[];
+		static volatile uint8_t rxRingBuffer[];
+		static volatile uint8_t rxRingBufferHead;
+		static volatile uint8_t rxRingBufferTail;
 		static uint8_t txTmpBuffer[];
 		static uint8_t txTmpBufferLength;
-		static uint8_t lastLqi;
-		static uint8_t lastRssi;
+		static volatile uint8_t lastLqi;
+		static volatile uint8_t lastRssi;
 		static uint8_t hasAttachedRxEvent;
 		static uint8_t hasAttachedTxEvent;
 		static uint8_t usedBeginTransmission;
