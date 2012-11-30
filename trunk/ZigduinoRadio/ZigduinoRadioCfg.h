@@ -35,8 +35,8 @@
 // define the LED behaviour macros here
 // leave them blank if you want to disable the LEDs
 // PD5 and PD6 are used on the Zigduino
-#define ZR_RFRX_LED_OUTPUT() do{DDRD|=_BV(6);}while(0)
-#define ZR_RFTX_LED_OUTPUT() do{DDRD|=_BV(5);}while(0)
+#define ZR_RFRX_LED_OUTPUT() do{DDRD|=_BV(6);}while(0) // 6
+#define ZR_RFTX_LED_OUTPUT() do{DDRD|=_BV(5);}while(0) // 5
 #define ZR_RFRX_LED_ON() do{PORTD|=_BV(6);}while(0)
 #define ZR_RFTX_LED_ON() do{PORTD|=_BV(5);}while(0)
 #define ZR_RFRX_LED_OFF() do{PORTD&=~_BV(6);}while(0)
