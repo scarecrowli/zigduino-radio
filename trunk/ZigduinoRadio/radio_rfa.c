@@ -75,13 +75,12 @@ void radio_error(radio_error_t err)
 void radio_receive_frame(void)
 {
     uint8_t len, lqi, crc_fail;
-    
+
     crc_fail = trx_bit_read(SR_RX_CRC_VALID) ? 0 : 1;
     len = trx_frame_read(radiostatus.rxframe, radiostatus.rxframesz, &lqi);
     len &= ~0x80;
-	
-    radiostatus.rxframe = usr_radio_receive_frame(len, radiostatus.rxframe,
-                                                  lqi, crc_fail);
+
+    usr_radio_receive_frame(len, radiostatus.rxframe, lqi, crc_fail);
 }
 
 /**
@@ -96,23 +95,23 @@ void radio_receive_frame(void)
  */
 ISR(TRX24_RX_END_vect)
 {
-	ZR_RFRX_LED_OFF();
-	
+    ZR_RFRX_LED_OFF();
+
     radio_receive_frame();
 } 
 
 ISR(TRX24_RX_START_vect)
 {
-	ZR_RFRX_LED_ON();
-	temprssi = trx_reg_read(RG_PHY_RSSI);
+    ZR_RFRX_LED_ON();
+    temprssi = trx_reg_read(RG_PHY_RSSI);
 }
 
 
 
 ISR(TRX24_TX_END_vect)
 {
-	ZR_RFTX_LED_OFF();
-	
+    ZR_RFTX_LED_OFF();
+    
     if (radiostatus.state == STATE_TX)
     {
         usr_radio_tx_done(TX_OK);
