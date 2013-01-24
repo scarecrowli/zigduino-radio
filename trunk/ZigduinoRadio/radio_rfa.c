@@ -80,7 +80,7 @@ void radio_receive_frame(void)
     len = trx_frame_read(radiostatus.rxframe, radiostatus.rxframesz, &lqi);
     len &= ~0x80;
 
-    usr_radio_receive_frame(len, radiostatus.rxframe, lqi, crc_fail);
+    radiostatus.rxframe = usr_radio_receive_frame(len, radiostatus.rxframe, lqi, crc_fail);
 }
 
 /**
