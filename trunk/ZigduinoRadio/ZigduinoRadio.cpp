@@ -6,13 +6,13 @@
    are met:
 
    * Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
+	 notice, this list of conditions and the following disclaimer.
    * Redistributions in binary form must reproduce the above copyright
-     notice, this list of conditions and the following disclaimer in the
-     documentation and/or other materials provided with the distribution.
+	 notice, this list of conditions and the following disclaimer in the
+	 documentation and/or other materials provided with the distribution.
    * Neither the name of the authors nor the names of its contributors
-     may be used to endorse or promote products derived from this software
-     without specific prior written permission.
+	 may be used to endorse or promote products derived from this software
+	 without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -263,7 +263,7 @@ uint8_t* cZigduinoRadio::onReceiveFrame(uint8_t len, uint8_t* frm, uint8_t lqi, 
 			}
 		}
 		
-		return (uint8_t*)rxRingBuffer;
+		return (uint8_t*)frm;
 	}
 	else
 	{
@@ -632,9 +632,9 @@ void cZigduinoRadio::setChannel(channel_t chan)
  */
 int8_t cZigduinoRadio::getRssiNow()
 {
-    int16_t rssi = ((int16_t)(trx_reg_read(RG_PHY_RSSI) & 0x1F)); // mask only important bits
-    rssi = (rssi == 0) ? (RSSI_BASE_VAL - 1) : ((rssi < 28) ? ((rssi - 1) * 3 + RSSI_BASE_VAL) : -9);
-    // if 0, then rssi < -90, if 28, then >= -10
+	int16_t rssi = ((int16_t)(trx_reg_read(RG_PHY_RSSI) & 0x1F)); // mask only important bits
+	rssi = (rssi == 0) ? (RSSI_BASE_VAL - 1) : ((rssi < 28) ? ((rssi - 1) * 3 + RSSI_BASE_VAL) : -9);
+	// if 0, then rssi < -90, if 28, then >= -10
 	
 	return rssi;
 }
@@ -656,9 +656,9 @@ extern uint8_t temprssi;
  */
 int8_t cZigduinoRadio::getLastRssi()
 {
-    int16_t rssi = ((int16_t)(temprssi & 0x1F)); // mask only important bits
-    rssi = (rssi == 0) ? (RSSI_BASE_VAL - 1) : ((rssi < 28) ? ((rssi - 1) * 3 + RSSI_BASE_VAL) : -9);
-    // if 0, then rssi < -90, if 28, then >= -10
+	int16_t rssi = ((int16_t)(temprssi & 0x1F)); // mask only important bits
+	rssi = (rssi == 0) ? (RSSI_BASE_VAL - 1) : ((rssi < 28) ? ((rssi - 1) * 3 + RSSI_BASE_VAL) : -9);
+	// if 0, then rssi < -90, if 28, then >= -10
 	
 	return rssi;
 }
@@ -690,7 +690,7 @@ uint8_t cZigduinoRadio::getLqi()
  */
 int8_t cZigduinoRadio::getLastEd()
 {
-    int8_t ed = trx_reg_read(RG_PHY_ED_LEVEL);
+	int8_t ed = trx_reg_read(RG_PHY_ED_LEVEL);
 	
 	return ed == 0xFF ? 0 : (ed + RSSI_BASE_VAL);
 }
@@ -707,7 +707,7 @@ int8_t cZigduinoRadio::getLastEd()
  */
 int8_t cZigduinoRadio::getEdNow()
 {
-    trx_reg_write(RG_PHY_ED_LEVEL, 0); // forces a reading
+	trx_reg_write(RG_PHY_ED_LEVEL, 0); // forces a reading
 	
 	return getLastEd();
 }
