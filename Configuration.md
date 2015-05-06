@@ -1,0 +1,27 @@
+## Enabling / Disabling LEDs ##
+
+Go into `ZigduinoRadioCfg.h`
+
+comment or uncomment `#define ENABLE_DIG3_DIG4` to enable or disable PA\_EXT\_EN behaviour. Enabling this will let the ATmega128RFA1 hardware automatically use DIG3 and DIG4 to indicate the status of the transceiver (this might be undesirable if you need those pins for other stuff)
+
+ZR\_RFRX\_LED\_OUTPUT/ON/OFF and ZR\_RFTX\_LED\_OUTPUT/ON/OFF are macros that will define the behaviour of the LEDs, or you can leave them blank to disable them (but they still need to be defined). These LEDs are PD6 and PD5 on the Zigduino board.
+
+## Buffer Sizes ##
+
+Go into `ZigduinoRadio.h` to edit the sizes of various buffers.
+
+The rxFrameBuffer and txTmpBuffer should not be longer than MAX\_FRAME\_SIZE, but may be smaller.
+
+Changing these sizes are meant to conserve memory. The default settings are pretty large, probably around 384 bytes of RAM, but the ATmega128RFA1 has 16K of RAM. You shouldn't have to worry too much about it.
+
+## Blocking Transmission Behaviour ##
+
+Go into `ZigduinoRadio.h`
+
+ZR\_TXWAIT\_BEFORE, if defined, will cause the subroutines to wait until the previous transmission has finished, before initializing a new one.
+
+ZR\_TXWAIT\_AFTER, if defined, will cause the subroutines to transmit the data, and then wait until that data has been transmitted.
+
+If both of the above are defined, then the subroutines will wait, then transmit, then wait again.
+
+Warning, if ZR\_TXWAIT\_AFTER is undefined, then the radio will not automatically go into the RX state, thus you must manually do this if you ever need to.
